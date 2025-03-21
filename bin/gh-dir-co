@@ -1,0 +1,36 @@
+#!/bin/sh
+
+set -o errexit
+
+# Get the path of the current file resides in, resolve the symlink
+# and get the real path
+DIR=$(cd "$(dirname "$0")" && pwd)
+REAL_PATH=$(readlink -f "$DIR")
+
+# strip '/bin' from the tail of the path.
+# This script resides in `github-dir/bin`
+REAL_PATH=${REAL_PATH%/bin}
+
+# Get the current directory running this script
+CURRENT_DIR="$(pwd)/"
+
+# If it is not in `.github/*`, exit with error
+if [[ "$CURRENT_DIR" != *"/.github/"* ]]; then
+    echo "Error: This script must be run in a '.github' directory"
+    exit 1
+fi
+
+# find out the relative path to the `.github/`
+# Go to the .github directory
+relative_path="${CURRENT_DIR#*/.github/}"
+cd "${CURRENT_DIR%/.github/*}/.github"
+
+# Using env variable to set the `.git` directory to the real path
+export GIT_DIR="$REAL_PATH/.git"
+
+# checkout the file
+for file in "$@"; do
+    git checkout -- "$relative_path/$file"
+done
+
+
